@@ -1,0 +1,61 @@
+#!/bin/bash
+PORT=10808
+NAMESERVER=`cat /etc/resolv.conf|grep nameserver|awk '{print $2}'`
+PROXY=$NAMESERVER:$PORT
+
+function proxy_status() {
+    echo "http_proxy      =" $http_proxy
+    echo "https_proxy     =" $https_proxy
+    echo "ALL_PROXY       =" $ALL_PROXY
+    echo "all_proxy       =" $all_proxy
+    echo "git_http_proxy  = `git config --global --get http.proxy`"
+    echo "git_https_proxy = `git config --global --get https.proxy`"
+}
+
+function proxy_start() {
+    export http_proxy="http://$PROXY"
+    export https_proxy="http://$PROXY"
+    # export ALL_PROXY="socks5://$PROXY"
+    # export all_proxy="socks5://$PROXY"
+
+    if [ "`git config --global --get http.proxy`" != "http://$PROXY" ]
+    then
+        git config --global http.proxy $http_proxy
+        git config --global https.proxy $https_proxy
+    fi
+
+    echo "SET PROXY"
+    echo ""
+    proxy_status
+}
+
+function proxy_stop() {
+    unset http_proxy
+    unset https_proxy
+    unset ALL_PROXY
+    unset all_proxy
+
+    if [ "`git config --global --get http.proxy`" = "http://$PROXY" ]
+    then
+        git config --global --unset http.proxy
+        git config --global --unset https.proxy
+    fi
+
+    echo "UNSET PROXY"
+    echo ""
+    proxy_status
+}
+
+
+function proxy() {
+    case $1 in
+        start)  proxy_start
+        ;;
+        stop)   proxy_stop
+        ;;
+        status) proxy_status
+        ;;
+        *)      echo "usage: start|stop|status"
+        ;;
+    esac
+}
